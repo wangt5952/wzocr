@@ -1,0 +1,3 @@
+<resources>
+    <dimen name="scan_hint_text_size_10dp">10dp</dimen>
+</resources>
