@@ -4,5 +4,8 @@
     <string name="title_activity_fullscreen">FullscreenActivity</string>
     <string name="dummy_button">Dummy Button</string>
     <string name="dummy_content">DUMMY\nCONTENT</string>
-    <string name="def_open_flashlight">开启闪光灯</string>
+    <string name="def_open_flashlight">闪光灯</string>
+    <string name="def_batch_scan">批量扫描</string>
+    <string name="button_scan">开始</string>
+    <string name="image_receive_info">收件信息</string>
 </resources>

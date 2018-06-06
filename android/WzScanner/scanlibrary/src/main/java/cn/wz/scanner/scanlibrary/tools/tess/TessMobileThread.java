@@ -65,8 +65,8 @@ public class TessMobileThread extends WzThread {
                 tsCallback.response(false, null, null);
             }
             // 直接截图
-            int width = (int) ocrPreSize.width * 2 / 3;
-            int height = (int) ocrPreSize.height * 9 / 10;
+            int width = (int) ocrPreSize.width * 1 / 10;
+            int height = (int) ocrPreSize.height * 4 / 5;
             int left = (ocrPreSize.width - width) / 2;
             int top = (ocrPreSize.height - height) / 2;
             int right = left + width;
@@ -84,17 +84,18 @@ public class TessMobileThread extends WzThread {
             long subEndTime = System.currentTimeMillis();
             Log.i(TAG, "处理Ocr帧图像耗时: " + (subEndTime - subStartTime) + "ms");
 
-            // 截取图片
-            int cMiddle = bmpWithOcr.getHeight() / 3;
-            int cTop = cMiddle - 80;
-            cTop = (cTop >= 0) ? cTop : 0;
-            int cBottom = cMiddle + 80;
-            cBottom = (cBottom <= bmpWithOcr.getHeight()) ? cBottom : bmpWithOcr.getHeight();
-            bmpWithOcr = ImageManager.cropByRect(bmpWithOcr, new Rect(0, cTop, bmpWithOcr.getWidth(), cBottom));
+            bmpWithOcr = TesseractUtil.catchPhoneRect(bmpWithOcr);
+//            // 截取图片
+//            int cMiddle = bmpWithOcr.getHeight() / 3;
+//            int cTop = cMiddle - 80;
+//            cTop = (cTop >= 0) ? cTop : 0;
+//            int cBottom = cMiddle + 80;
+//            cBottom = (cBottom <= bmpWithOcr.getHeight()) ? cBottom : bmpWithOcr.getHeight();
+//            bmpWithOcr = ImageManager.cropByRect(bmpWithOcr, new Rect(0, cTop, bmpWithOcr.getWidth(), cBottom));
             // 缩放
-//            bmpWithOcr = ImageManager.scale(bmpWithOcr, 0.5f);
+            bmpWithOcr = ImageManager.scale(bmpWithOcr, 0.5f);
             // 灰度化
-            bmpWithOcr = ImageManager.toGray(bmpWithOcr);
+//            bmpWithOcr = ImageManager.toGray(bmpWithOcr);
             // 二值化
 //            bmpWithOcr = ImageManager.binarization(bmpWithOcr);
             // 锐化

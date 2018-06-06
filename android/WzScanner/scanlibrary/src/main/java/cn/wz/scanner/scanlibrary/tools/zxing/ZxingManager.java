@@ -11,6 +11,7 @@ import com.google.zxing.MultiFormatReader;
 import com.google.zxing.RGBLuminanceSource;
 import com.google.zxing.Result;
 import com.google.zxing.common.HybridBinarizer;
+import com.google.zxing.multi.GenericMultipleBarcodeReader;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -64,13 +65,45 @@ public class ZxingManager {
         LuminanceSource source = new RGBLuminanceSource(pBmp.getWidth(), pBmp.getHeight(), intArray);
         BinaryBitmap bBmap = new BinaryBitmap(new HybridBinarizer(source));
         try {
-            Result zxDetectResult = mfr.decode(bBmap, mHints);
-            if (null == zxDetectResult || WzStringUtil.isBlank(zxDetectResult.getText())) {
+            Result zxDetectedResult = mfr.decode(bBmap, mHints);
+            if (null == zxDetectedResult || WzStringUtil.isBlank(zxDetectedResult.getText())) {
                 Log.e(TAG, "条码解码结果为空");
                 return null;
             } else {
                 Log.i(TAG, "条码解码成功");
-                return zxDetectResult.getText();
+                return zxDetectedResult.getText();
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "条码解码失败", e);
+            return null;
+        }
+    }
+
+    /**
+     * 解码同一张图上的多个一维码或二维码.
+     * @param pBmp 图像
+     * @return 解码结果组
+     */
+    public String[] detectMultipleCodes(final Bitmap pBmp) {
+        MultiFormatReader mfr = new MultiFormatReader();
+        GenericMultipleBarcodeReader gmbr = new GenericMultipleBarcodeReader(mfr);
+        int[] intArray = new int[pBmp.getWidth() * pBmp.getHeight()];
+        // 将图像像素拷贝到intArray中
+        pBmp.getPixels(intArray, 0, pBmp.getWidth(), 0, 0, pBmp.getWidth(), pBmp.getHeight());
+        LuminanceSource source = new RGBLuminanceSource(pBmp.getWidth(), pBmp.getHeight(), intArray);
+        BinaryBitmap bBmap = new BinaryBitmap(new HybridBinarizer(source));
+        try {
+            Result[] zxDetectedResults = gmbr.decodeMultiple(bBmap, mHints);
+            if (null == zxDetectedResults || 0 == zxDetectedResults.length) {
+                Log.e(TAG, "条码解码结果为空");
+                return null;
+            } else {
+                Log.i(TAG, "条码解码成功");
+                String[] zxRslts = new String[zxDetectedResults.length];
+                for (int i = 0; i < zxDetectedResults.length; i++) {
+                    zxRslts[i] = zxDetectedResults[i].getText();
+                }
+                return zxRslts;
             }
         } catch (Exception e) {
             Log.e(TAG, "条码解码失败", e);

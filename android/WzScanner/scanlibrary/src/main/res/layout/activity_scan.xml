@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:gravity="center_horizontal">
@@ -11,30 +12,59 @@
         android:layout_centerInParent="true"
         android:visibility="visible"/>
 
+    <android.support.design.widget.FloatingActionButton
+        android:id="@+id/btnOverAndBack"
+        android:layout_margin="10dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|start"
+        app:srcCompat="@android:drawable/ic_menu_revert"/>
+
     <Switch
         android:id="@+id/switchOpenFlashLight"
         android:text="@string/open_flashlight"
-        android:layout_margin="20dp"
+        android:layout_margin="10dp"
         android:textColor="@color/white"
-        android:layout_centerHorizontal="true"
-        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentTop="true"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"/>
-
     <TextView
+        android:id="@+id/txtNote1"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_centerHorizontal="true"
         android:layout_alignParentTop="true"
-        android:text="@string/auto_scan_notification"
-        android:layout_margin="20dp"
-        android:background="#FFFFFF" />
-   <!-- <Button
-        android:id="@+id/btnTakePicture"
+        android:text="@string/auto_scan_notification1"
+        android:textColor="#FFFFFFFF"
+        android:layout_marginTop="50dp"
+        android:background="#00000000" />
+    <TextView
+        android:id="@+id/txtNote2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentLeft="true"
+        android:layout_centerHorizontal="true"
+        android:layout_below="@+id/txtNote1"
+        android:layout_marginTop="5dp"
+        android:text="@string/auto_scan_notification2"
+        android:textColor="#FFFFFFFF"
+        android:background="#00000000" />
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/lsScanRsltLs"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/txtNote2"
+        android:layout_above="@+id/btnDecoding"
+        android:layout_marginTop="105dp"
+        android:background="#00000000"
+        />
+   <Button
+        android:id="@+id/btnDecoding"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
         android:layout_alignParentBottom="true"
-        android:layout_margin="20dp"
-        android:text="@string/distinguish_text" />-->
+        android:background="@color/colorAccent"
+        android:textColor="@color/white"
+        android:text="@string/distinguish_text" />
 </RelativeLayout>

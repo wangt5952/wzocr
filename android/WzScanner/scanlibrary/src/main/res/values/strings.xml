@@ -1,6 +1,8 @@
 <resources>
     <string name="app_name">智慧扫描</string>
+    <string name="scan_over_and_back">完成</string>
     <string name="distinguish_text">识别</string>
-    <string name="open_flashlight">打开闪光灯</string>
-    <string name="auto_scan_notification">请将扫描线扫过手机号并确保条码在框内</string>
+    <string name="open_flashlight">闪光灯</string>
+    <string name="auto_scan_notification1">确保收件人区域在白框内</string>
+    <string name="auto_scan_notification2">单击识别按钮</string>
 </resources>

@@ -8,8 +8,6 @@ import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.hardware.Camera;
-import android.os.Handler;
-import android.os.Message;
 import android.os.Vibrator;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -20,14 +18,15 @@ import android.view.WindowManager;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import cn.wz.scanner.scanlibrary.R;
 import cn.wz.scanner.scanlibrary.acitvity.ScanActivity;
 import cn.wz.scanner.scanlibrary.pojo.WzScanResult;
 import cn.wz.scanner.scanlibrary.tools.tess.TessManager;
-import cn.wz.scanner.scanlibrary.tools.tess.TessMobileThread;
-import cn.wz.scanner.scanlibrary.tools.tess.TessSimpleCallback;
+import cn.wz.scanner.scanlibrary.tools.youtu.YoutuSimpleCallback;
+import cn.wz.scanner.scanlibrary.tools.youtu.YoutuThread;
 import cn.wz.scanner.scanlibrary.tools.zxing.ZxingSimpleCallback;
 import cn.wz.scanner.scanlibrary.tools.zxing.ZxingThread;
 
@@ -71,8 +70,6 @@ public class WzScannerView extends SurfaceView implements SurfaceHolder.Callback
     private SurfaceHolder mHolder;
     /** 父界面. */
     private ScanActivity mScanActivity;
-    /** 是否默认闪光灯开. */
-    private boolean isDefFlashLightOpen = false;
 
     /**
      * 构造方法.
@@ -111,14 +108,6 @@ public class WzScannerView extends SurfaceView implements SurfaceHolder.Callback
         mAngleLength = 40;
         mScannerAlpha = 0;
         init();
-    }
-
-    /**
-     * 设置默认闪光灯是否开.
-     * @param defFlashLightOpen 默认开关状态
-     */
-    public void setDefFlashLightOpen(boolean defFlashLightOpen) {
-        this.isDefFlashLightOpen = defFlashLightOpen;
     }
 
     /**
@@ -174,17 +163,23 @@ public class WzScannerView extends SurfaceView implements SurfaceHolder.Callback
                 cameraResForScreen.x = cameraResolution.y;
                 cameraResForScreen.y = cameraResolution.x;
             }
-            int width = cameraResForScreen.x * 9 / 10;
-            int height = cameraResForScreen.y * 2 / 3;
-            width = width == 0
-                    ? MIN_FOCUS_BOX_WIDTH
-                    : width < MIN_FOCUS_BOX_WIDTH ? MIN_FOCUS_BOX_WIDTH : width;
-            height = height == 0
-                    ? MIN_FOCUS_BOX_HEIGHT
-                    : height < MIN_FOCUS_BOX_HEIGHT ? MIN_FOCUS_BOX_HEIGHT : height;
+            // 针对OCR
+//            int width = cameraResForScreen.x * 9 / 10;
+//            int height = cameraResForScreen.y * 2 / 3;
+            // 针对优图设置
+            int width = cameraResForScreen.x * 5 / 6;
+            int height = cameraResForScreen.y * 1 / 10;
+
+//            width = width == 0
+//                    ? MIN_FOCUS_BOX_WIDTH
+//                    : width < MIN_FOCUS_BOX_WIDTH ? MIN_FOCUS_BOX_WIDTH : width;
+//            height = height == 0
+//                    ? MIN_FOCUS_BOX_HEIGHT
+//                    : height < MIN_FOCUS_BOX_HEIGHT ? MIN_FOCUS_BOX_HEIGHT : height;
 
             int left = (screenResolution.x - width) / 2;
-            int top = (screenResolution.y - height) / 2;
+            int top = (screenResolution.y - height) / 4;
+//            int top = screenResolution.y / 3;
             this.top = top; //记录初始距离上方距离
 
             mFrameRect = new Rect(left, top, left + width, top + height);
@@ -205,24 +200,23 @@ public class WzScannerView extends SurfaceView implements SurfaceHolder.Callback
         int width = canvas.getWidth();
         int height = canvas.getHeight();
 
-        // 绘制焦点框外边的暗色背景
-        mPaint.setColor(mMaskColor);
-        canvas.drawRect(0, 0, width, frame.top, mPaint);
-        canvas.drawRect(0, frame.top, frame.left, frame.bottom + 1, mPaint);
-        canvas.drawRect(frame.right + 1, frame.top, width, frame.bottom + 1, mPaint);
-        canvas.drawRect(0, frame.bottom + 1, width, height, mPaint);
+//        // 绘制焦点框外边的暗色背景
+//        mPaint.setColor(mMaskColor);
+//        canvas.drawRect(0, 0, width, frame.top, mPaint);
+//        canvas.drawRect(0, frame.top, frame.left, frame.bottom + 1, mPaint);
+//        canvas.drawRect(frame.right + 1, frame.top, width, frame.bottom + 1, mPaint);
+//        canvas.drawRect(0, frame.bottom + 1, width, height, mPaint);
 
         drawFocusRect(canvas, frame);
         drawAngle(canvas, frame);
 //        drawText(canvas, frame);
-        drawLaser(canvas, frame);
+//        drawLaser(canvas, frame);
     }
 
     /**
-     * 画聚焦框，白色的
-     *
-     * @param canvas
-     * @param rect
+     * 画聚焦框，白色的.
+     * @param canvas 画布
+     * @param rect 范围框
      */
     private void drawFocusRect(Canvas canvas, Rect rect) {
         // 绘制焦点框（黑色）
@@ -283,223 +277,28 @@ public class WzScannerView extends SurfaceView implements SurfaceHolder.Callback
 //        canvas.drawText(text, left, rect.top - fontTotalHeight * 3, mPaint);
 //    }
 
-    /**
-     * 或扫描线.
-     * @param canvas 画布
-     * @param rect 扫描线区域
-     */
-    private void drawLaser(Canvas canvas, Rect rect) {
-        // 绘制焦点框内固定的一条扫描线
-        mPaint.setColor(mLaserColor);
-        mPaint.setAlpha(SCANNER_ALPHA[mScannerAlpha]);
-        mScannerAlpha = (mScannerAlpha + 1) % SCANNER_ALPHA.length;
-        int middle = rect.height() / 3 + rect.top;
-        canvas.drawRect(rect.left + 2, middle - 1, rect.right - 1, middle + 2, mPaint);
-        mLaserHandler.sendEmptyMessageDelayed(1, ANIMATION_DELAY);
-    }
-
-    private Handler mLaserHandler = new Handler(){
-        @Override
-        public void handleMessage(Message msg) {
-            super.handleMessage(msg);
-            invalidate();
-        }
-    };
-
-    /** 是否正在自动对焦. */
-    public boolean isAutoFocusing = true;
-    /** 处理时间. */
-    private long startTime, endTime;
-    /** 是否识别中. */
-    public boolean isDecoding = false;
-    /** 是否Ocr识别中. */
-    public boolean isOcrDecoding = false;
-    /** 是否条码识别中. */
-    public boolean isCodeDecoding = false;
-    // 解析结果
-    private WzScanResult scanResult = new WzScanResult();
-
-    @Override
-    public void onPreviewFrame(final byte[] bytes, final Camera camera) {
-//        isCodeDecoding = true;
-//        isOcrDecoding = true;
-        if ((isOcrDecoding && isCodeDecoding) || null == mScanActivity) {
-            return;
-        } else {
-            if (scanResult.isRecipientMobileSuccess() && scanResult.isMailNoSuccess()) {
-//            if (scanResult.isMailNoSuccess()) {
-//            if (scanResult.isRecipientMobileSuccess()) {
-                // 震动
-                Vibrator vibrator = (Vibrator) mScanActivity.getSystemService(Context.VIBRATOR_SERVICE);
-                vibrator.vibrate(200L);
-                mScanActivity.handleDecode(scanResult);
-                stopPreview();
-                return;
-            }
-            // OCR解码
-            if (!isOcrDecoding && null != bytes && 0 < bytes.length && !scanResult.isRecipientMobileSuccess()) {
-                isOcrDecoding = true;
-                new TessMobileThread(bytes, camera, getContext(), "eng", new TessSimpleCallback() {
-                    @Override
-                    public void response(boolean isOk, String respOcrText, Bitmap cropBmp) {
-                        if (isOk) {
-                            // 保存图片
-                            try {
-                                ByteArrayOutputStream tmpStream = new ByteArrayOutputStream();
-                                cropBmp.compress(Bitmap.CompressFormat.JPEG, 80, tmpStream);
-                                byte[] ocBmpBytes = tmpStream.toByteArray();
-                                tmpStream.close();
-                                scanResult.setBitmap(ocBmpBytes);
-                                scanResult.setRecipientMobileSuccess(true);
-                                scanResult.setRecipientMobile(respOcrText);
-                            } catch (Exception e) {
-                                isOcrDecoding = false;
-                            }
-                        }
-                        isOcrDecoding = false;
-                    }
-                }).start();
-            }
-            // 条码解码
-            if (!isCodeDecoding && null != bytes && 0 < bytes.length && !scanResult.isMailNoSuccess()) {
-                isCodeDecoding = true;
-                new ZxingThread(bytes, camera, new ZxingSimpleCallback() {
-                    @Override
-                    public void response(boolean isOk, String respZxingText, Bitmap cropBmp) {
-                        if (isOk) {
-                            try {
-//                                ByteArrayOutputStream tmpStream = new ByteArrayOutputStream();
-//                                cropBmp.compress(Bitmap.CompressFormat.JPEG, 80, tmpStream);
-//                                byte[] cdBmpBytes = tmpStream.toByteArray();
-//                                tmpStream.close();
-//                                scanResult.setBitmap(cdBmpBytes);
-                                scanResult.setMailNoSuccess(true);
-                                scanResult.setMailNo(respZxingText);
-                            } catch (Exception e) {
-                                Log.e(TAG, "条码处理结果失败", e);
-                                isCodeDecoding = false;
-                            }
-                        }
-                        isCodeDecoding = false;
-                    }
-                }).start();
-            }
-
-//            new Thread(new Runnable() {
-//                @Override
-//                public void run() {
-//                    try {
-//                        // 获取帧图片
-//                        startTime = System.currentTimeMillis();
-//                        Bitmap bmp = null;
-//                        Camera.Size preSize = camera.getParameters().getPreviewSize();
-//                        Log.i(TAG, "预览范围：" + preSize.width + " x " + preSize.height);
-//                        final YuvImage image = new YuvImage(bytes, camera.getParameters().getPreviewFormat(), preSize.width, preSize.height, null);
-//                        Log.i(TAG, "预览图大小：" + image.getWidth() + " x " + image.getHeight());
-//                        if (null == image) {
-//                            Log.e(TAG, "帧数据转换图像中间过程失败");
-//                            if (!scanResult.isRecipientMobileSuccess()) {
-//                                isOcrDecoding = false;
-//                            }
-//                            if (!scanResult.isMailNoSuccess()) {
-//                                isCodeDecoding = false;
-//                            }
-////                            isDecoding = false;
-//                            return;
-//                        }
-//                        // 直接截图
-//                        int width = (int) preSize.width * 2 / 3;
-//                        int height = (int) preSize.height * 9 / 10;
-//                        int left = (preSize.width - width) / 2;
-//                        int top = (preSize.height - height) / 2;
-//                        int right = left + width;
-//                        int bottom = top + height;
-//                        ByteArrayOutputStream stream = new ByteArrayOutputStream();
-//                        image.compressToJpeg(new Rect(left, top, right, bottom), 100, stream);
-//                        bmp = BitmapFactory.decodeByteArray(stream.toByteArray(), 0, stream.size());
-//                        stream.close();
-//                        if (null == bmp) {
-//                            Log.e(TAG, "帧数据转换图像失败");
-//                            if (!scanResult.isRecipientMobileSuccess()) {
-//                                isOcrDecoding = false;
-//                            }
-//                            if (!scanResult.isMailNoSuccess()) {
-//                                isCodeDecoding = false;
-//                            }
-////                            isDecoding = false;
-//                            return;
-//                        }
-//                        bmp = ImageManager.rotateToDegrees(bmp, 90);
-//                        endTime = System.currentTimeMillis();
-//                        Log.i(TAG, "获取并初步处理帧图像耗时: " + (endTime - startTime) + "ms");
-
-                        // 条码解码
-//                        if (!isCodeDecoding && null != bytes && 0 < bytes.length && !scanResult.isMailNoSuccess()) {
-//                            isCodeDecoding = true;
-////                            Bitmap codeBmp = bmp.copy(bmp.getConfig(), true);
-//                            new ZxingThread(bytes, camera, new ZxingSimpleCallback() {
-//                                @Override
-//                                public void response(boolean isOk, String respZxingText) {
-//                                    if (isOk) {
-//                                        scanResult.setMailNoSuccess(true);
-//                                        scanResult.setMailNo(respZxingText);
-//                                    }
-//                                    isCodeDecoding = false;
-//                                }
-//                            }).start();
-//                        }
-//                        // OCR解码
-//                        if (!isOcrDecoding && null != bytes && 0 < bytes.length && !scanResult.isRecipientMobileSuccess()) {
-//                            isOcrDecoding = true;
-//                            new TessMobileThread(bytes, camera, getContext(), "eng", new TessSimpleCallback() {
-//                                @Override
-//                                public void response(boolean isOk, String respOcrText, Bitmap cropBmp) {
-//                                    if (isOk) {
-//                                        // 保存图片
-//                                        try {
-//                                            ByteArrayOutputStream tmpStream = new ByteArrayOutputStream();
-//                                            cropBmp.compress(Bitmap.CompressFormat.JPEG, 100, tmpStream);
-//                                            byte[] cBmpBytes = tmpStream.toByteArray();
-//                                            tmpStream.close();
-//                                            scanResult.setBitmap(cBmpBytes);
-//                                            scanResult.setRecipientMobileSuccess(true);
-//                                            scanResult.setRecipientMobile(respOcrText);
-//                                        } catch (Exception e) {
-//                                            isOcrDecoding = false;
-//                                        }
-//                                    }
-//                                    isOcrDecoding = false;
-//                                }
-//                            }).start();
-//                        }
-//                        // 启动解码线程
-//                        mCdlatch = new CountDownLatch(mWorkLs.size());
-//                        for (WzThread tmpThread : mWorkLs) {
-//                            tmpThread.setCdl(mCdlatch);
-//                            tmpThread.start();
-//                        }
-//                        mCdlatch.await();
-//                        if (scanResult.isMailNoSuccess() && scanResult.isRecipientMobileSuccess()) {
-//                        if (scanResult.isRecipientMobileSuccess()) {
-//                        if (scanResult.isMailNoSuccess()) {
-//                            mScanActivity.handleDecode(scanResult);
-//                        } else {
-//                            isDecoding = false;
-//                        }
-//                    } catch (Exception e) {
-//                        Log.d(TAG, "解析失败", e);
-//                        if (!scanResult.isRecipientMobileSuccess()) {
-//                            isOcrDecoding = false;
-//                        }
-//                        if (!scanResult.isMailNoSuccess()) {
-//                            isCodeDecoding = false;
-//                        }
-////                        isDecoding = false;
-//                    }
-//                }
-//            }).start();
-        }
-    }
+//    /**
+//     * 或扫描线.
+//     * @param canvas 画布
+//     * @param rect 扫描线区域
+//     */
+//    private void drawLaser(Canvas canvas, Rect rect) {
+//        // 绘制焦点框内固定的一条扫描线
+//        mPaint.setColor(mLaserColor);
+//        mPaint.setAlpha(SCANNER_ALPHA[mScannerAlpha]);
+//        mScannerAlpha = (mScannerAlpha + 1) % SCANNER_ALPHA.length;
+//        int middle = rect.height() / 3 + rect.top;
+//        canvas.drawRect(rect.left + 2, middle - 1, rect.right - 1, middle + 2, mPaint);
+//        mLaserHandler.sendEmptyMessageDelayed(1, ANIMATION_DELAY);
+//    }
+//
+//    private Handler mLaserHandler = new Handler(){
+//        @Override
+//        public void handleMessage(Message msg) {
+//            super.handleMessage(msg);
+//            invalidate();
+//        }
+//    };
 
     @Override
     public void surfaceCreated(SurfaceHolder surfaceHolder) {
@@ -513,7 +312,7 @@ public class WzScannerView extends SurfaceView implements SurfaceHolder.Callback
         if (null != mCamera) {
             initCamera();
             initScanRect();
-            setFlashLight(isDefFlashLightOpen);
+            setFlashLight(mScanActivity.getDefFlashIsOpen());
         }
     }
 
@@ -724,144 +523,188 @@ public class WzScannerView extends SurfaceView implements SurfaceHolder.Callback
      */
     private Runnable doAutoFocus = new Runnable() {
         public void run() {
-        if (mCamera != null) {
-            isAutoFocusing = true;
-//            mCamera.setOneShotPreviewCallback(WzScannerView.this);
-            try {
-                mCamera.autoFocus(autoFocusCallback);
-            } catch (Exception e) {
-                Log.e(TAG, "自动对焦异常", e);
-                postDelayed(doAutoFocus, 100);
+            if (mCamera != null) {
+                isAutoFocusing = true;
+//                  mCamera.setOneShotPreviewCallback(WzScannerView.this);
+                try {
+                    mCamera.autoFocus(autoFocusCallback);
+                } catch (Exception e) {
+                    Log.e(TAG, "自动对焦异常", e);
+                    postDelayed(doAutoFocus, 100);
+                }
             }
-        }
         }
     };
 
-//    public void doTakePic() {
-//        mCamera.takePicture(new Camera.ShutterCallback() {
-//            @Override
-//            public void onShutter() {
-//                Log.i(TAG, "此处可以发出声音");
-//            }
-//        }, new Camera.PictureCallback() {
-//            @Override
-//            public void onPictureTaken(byte[] bytes, Camera camera) {
-//                Log.i(TAG, "原图处理");
-//                if (null == bytes) {
-//                    Log.e(TAG, "照片为空");
-//                }
-//            }
-//        }, new Camera.PictureCallback() {
-//            @Override
-//            public void onPictureTaken(final byte[] bytes, final Camera camera) {
-//                new Thread(new Runnable() {
+    @Override
+    public void onPreviewFrame(final byte[] bytes, final Camera camera) {
+        decodedImage(bytes, camera);
+    }
+
+    /*
+     * 解码识别.
+     */
+    /** 是否正在自动对焦. */
+    public boolean isAutoFocusing = true;
+    /** 处理时间. */
+    private long startTime, endTime;
+    /** 是否Ocr识别中. */
+    public boolean isOcrDecoding = true;
+    /** 是否条码识别中. */
+    public boolean isCodeDecoding = true;
+    // 解析结果
+    private ArrayList<WzScanResult> scanRsltLs = new ArrayList<WzScanResult>();
+    private WzScanResult scanResult = new WzScanResult();
+
+    /**
+     * 解析图片.
+     * @param bytes 图片字节
+     * @param camera 摄像头
+     */
+    private void decodedImage(final byte[] bytes, final Camera camera) {
+        if ((isOcrDecoding && isCodeDecoding) || null == mScanActivity) {
+            return;
+        } else {
+            if (scanResult.isRecipientMobileSuccess() && scanResult.isMailNoSuccess()) {
+//            if (scanResult.isMailNoSuccess()) {
+//                isCodeDecoding = true;
+//                mScanActivity.setBtnTakePicShow();
+//                return;
+//            if (scanResult.isRecipientMobileSuccess()) {
+                // 震动表示识别结束
+                Vibrator vibrator = (Vibrator) mScanActivity.getSystemService(Context.VIBRATOR_SERVICE);
+                vibrator.vibrate(200L);
+                // 关闭识别进度条
+                mScanActivity.cancelProgressDialog();
+                // 点击识别按钮前不再进行扫描
+                isOcrDecoding = true;
+                isCodeDecoding = true;
+                // 允许再次点击识别按钮
+                isDecoding = false;
+                // 如果是批量扫描
+                if (mScanActivity.getDefMultipleScan()) {
+                    // 将扫描结果放入列表
+                    scanRsltLs.add(0, scanResult);
+                    // 刷新结果列表
+                    mScanActivity.refreshRsltLs(scanRsltLs);
+                    // 初始化结果准备下次扫描
+                    scanResult = new WzScanResult();
+                } else {
+                    // 将扫描结果放入列表
+                    scanRsltLs.add(scanResult);
+                    mScanActivity.handleDecode(scanRsltLs);
+                    stopPreview();
+                    return;
+                }
+            }
+//            // OCR解码
+//            if (!isOcrDecoding && null != bytes && 0 < bytes.length && !scanResult.isRecipientMobileSuccess()) {
+//                isOcrDecoding = true;
+//                new TessMobileThread(bytes, camera, getContext(), "eng", new TessSimpleCallback() {
 //                    @Override
-//                    public void run() {
-//                        Log.i(TAG, "压缩后图处理");
-//                        if (null == bytes) {
-//                            Log.e(TAG, "照片为空");
-//                            return;
-//                        }
-//                        // 解析结果
-//                        WzScanResult scanResult = new WzScanResult();
-//                        try {
-//                            // 获取帧图片
-//                            startTime = System.currentTimeMillis();
-//                            Bitmap bmp = null;
-//                            Camera.Size preSize = camera.getParameters().getPictureSize();
-//                            Log.i(TAG, "预览范围：" + preSize.width + " x " + preSize.height);
-//                            final YuvImage image = new YuvImage(bytes, camera.getParameters().getPreviewFormat(), preSize.width, preSize.height, null);
-//                            Log.i(TAG, "预览图大小：" + image.getWidth() + " x " + image.getHeight());
-//                            if (null == image) {
-//                                Log.e(TAG, "帧数据转换图像中间过程失败");
-//                                isDecoding = false;
-//                                return;
+//                    public void response(boolean isOk, String respOcrText, Bitmap cropBmp) {
+//                        if (isOk) {
+//                            // 保存图片
+//                            try {
+//                                ByteArrayOutputStream tmpStream = new ByteArrayOutputStream();
+//                                cropBmp.compress(Bitmap.CompressFormat.JPEG, 80, tmpStream);
+//                                byte[] ocBmpBytes = tmpStream.toByteArray();
+//                                tmpStream.close();
+//                                scanResult.setBitmap(ocBmpBytes);
+//                                scanResult.setRecipientMobileSuccess(true);
+//                                scanResult.setRecipientMobile(respOcrText);
+//                            } catch (Exception e) {
+//                                isOcrDecoding = false;
 //                            }
-//                            // 直接截图
-//                            int width = (int) preSize.width * 2 / 3;
-//                            int height = (int) preSize.height * 9 / 10;
-//                            int left = (preSize.width - width) / 2;
-//                            int top = (preSize.height - height) / 2;
-//                            int right = left + width;
-//                            int bottom = top + height;
-//                            ByteArrayOutputStream stream = new ByteArrayOutputStream();
-//                            image.compressToJpeg(new Rect(left, top, right, bottom), 100, stream);
-//                            bmp = BitmapFactory.decodeByteArray(stream.toByteArray(), 0, stream.size());
-//                            stream.close();
-//                            if (null == bmp) {
-//                                Log.e(TAG, "帧数据转换图像失败");
-//                                isDecoding = false;
-//                                return;
-//                            }
-//                            bmp = ImageManager.rotateToDegrees(bmp, 90);
-//                            endTime = System.currentTimeMillis();
-//                            ByteArrayOutputStream tmpStream = new ByteArrayOutputStream();
-//                            bmp.compress(Bitmap.CompressFormat.JPEG, 100, tmpStream);
-//                            byte[] cBmpBytes = tmpStream.toByteArray();
-//                            tmpStream.close();
-//                            scanResult.setBitmap(cBmpBytes);
-//                            mScanActivity.handleDecode(scanResult);
-//                            //                    Log.i(TAG, "获取并初步处理帧图像耗时: " + (endTime - startTime) + "ms");
-//                            //
-//                            //                    startTime = System.currentTimeMillis();
-//                            //
-//                            //                    // 工作线程控制
-//                            //                    CountDownLatch mCdlatch = null;
-//                            //                    // 工作线程列表
-//                            //                    List<WzThread> mWorkLs = new ArrayList<WzThread>();
-//                            //                    // 条码解码
-//                            //                    if (null != bmp && !scanResult.isMailNoSuccess()) {
-//                            ////                            ByteArrayOutputStream tmpStream = new ByteArrayOutputStream();
-//                            ////                            bmp.compress(Bitmap.CompressFormat.JPEG, 100, tmpStream);
-//                            ////                            byte[] cBmpBytes = tmpStream.toByteArray();
-//                            ////                            tmpStream.close();
-//                            ////                            scanResult.setBitmap(cBmpBytes);
-//                            ////                            mWorkLs.add(new ZxingThread(bmp, scanResult));
-//                            //                    }
-//                            //                    // OCR解码
-//                            //                    if (null != bmp && !scanResult.isRecipientMobileSuccess()) {
-//                            //                        // 截取图片
-//                            ////                        int cMiddle = mFrameRect.height() / 3;
-//                            ////                        int cTop = cMiddle - 50;
-//                            ////                        cTop = (cTop >= 0) ? cTop : 0;
-//                            ////                        int cBottom = cMiddle + 50;
-//                            ////                        cBottom = (cBottom <= bmp.getHeight()) ? cBottom : bmp.getHeight();
-//                            ////                        bmp = ImageManager.cropByRect(bmp, new Rect(0, cTop, bmp.getWidth(), cBottom));
-//                            //                        // 灰度化
-//                            //                        bmp = ImageManager.toGray(bmp);
-//                            //                        // 二值化
-//                            //                        bmp = ImageManager.binarization(bmp);
-//                            //                        // 保存图片
-//                            ////                        ByteArrayOutputStream tmpStream = new ByteArrayOutputStream();
-//                            ////                        bmp.compress(Bitmap.CompressFormat.JPEG, 100, tmpStream);
-//                            ////                        byte[] cBmpBytes = tmpStream.toByteArray();
-//                            ////                        tmpStream.close();
-//                            ////                        scanResult.setBitmap(cBmpBytes);
-//                            //                        mWorkLs.add(new TessMobileThread(bmp, scanResult, getContext(), "eng"));
-//                            //                    }
-//                            //                    // 启动解码线程
-//                            //                    mCdlatch = new CountDownLatch(mWorkLs.size());
-//                            //                    for (WzThread tmpThread : mWorkLs) {
-//                            //                        tmpThread.setCdl(mCdlatch);
-//                            //                        tmpThread.start();
-//                            //                    }
-//                            //                    mCdlatch.await();
-//                            ////                        if (scanResult.isMailNoSuccess() && scanResult.isRecipientMobileSuccess()) {
-//                            //                    if (scanResult.isRecipientMobileSuccess()) {
-//                            ////                        if (scanResult.isMailNoSuccess()) {
-//                            //                        mScanActivity.handleDecode(scanResult);
-//                            //                    } else {
-//                            //                        mScanActivity.handleDecode(scanResult);
-//                            //                    }
-//                            //                    endTime = System.currentTimeMillis();
-//                            //                    Log.i(TAG, "OCR或条码解码耗时: " + (endTime - startTime) + "ms");
-//                        } catch (Exception e) {
-//                            Log.d(TAG, "解析失败", e);
-//                            mScanActivity.handleDecode(scanResult);
 //                        }
+//                        isOcrDecoding = false;
 //                    }
 //                }).start();
 //            }
-//        });
-//    }
+            // 优图解码
+            if (!isOcrDecoding && null != bytes && 0 < bytes.length && !scanResult.isRecipientMobileSuccess()) {
+                isOcrDecoding = true;
+                new YoutuThread(bytes, camera, new YoutuSimpleCallback() {
+                    @Override
+                    public void response(boolean isOk, WzScanResult respOcrText, Bitmap cropBmp) {
+                        try {
+                            // 保存图片
+                            ByteArrayOutputStream tmpStream = new ByteArrayOutputStream();
+                            cropBmp.compress(Bitmap.CompressFormat.JPEG, 80, tmpStream);
+                            byte[] ocBmpBytes = tmpStream.toByteArray();
+                            tmpStream.close();
+                            scanResult.setBitmap(ocBmpBytes);
+                            if (isOk) {
+                                scanResult.setRecipientMobileSuccess(true);
+                                scanResult.setRecipientMobile(respOcrText.getRecipientMobile());
+                                scanResult.setRecipientAddr(respOcrText.getRecipientAddr());
+                                scanResult.setRecipientName(respOcrText.getRecipientName());
+                            } else {
+                                scanResult.setRecipientMobileSuccess(true);
+                                scanResult.setRecipientMobile("未解析出内容无内容");
+                                scanResult.setRecipientAddr("无内容");
+                                scanResult.setRecipientName("无内容");
+                            }
+                        } catch (Exception e) {
+                            isOcrDecoding = false;
+                            scanResult.setRecipientMobileSuccess(true);
+                            scanResult.setRecipientMobile("异常");
+                            scanResult.setRecipientAddr("异常");
+                            scanResult.setRecipientName("异常");
+                        }
+                        isOcrDecoding = false;
+                    }
+                }).start();
+            }
+            // 条码解码
+            if (!isCodeDecoding && null != bytes && 0 < bytes.length && !scanResult.isMailNoSuccess()) {
+                isCodeDecoding = true;
+                new ZxingThread(bytes, camera, new ZxingSimpleCallback() {
+                    @Override
+                    public void response(boolean isOk, String respZxingText, Bitmap cropBmp) {
+                        if (isOk) {
+                            try {
+//                                ByteArrayOutputStream tmpStream = new ByteArrayOutputStream();
+//                                cropBmp.compress(Bitmap.CompressFormat.JPEG, 80, tmpStream);
+//                                byte[] cdBmpBytes = tmpStream.toByteArray();
+//                                tmpStream.close();
+//                                scanResult.setBitmap(cdBmpBytes);
+                                scanResult.setMailNoSuccess(true);
+                                scanResult.setMailNo(respZxingText);
+                                isCodeDecoding = false;
+                            } catch (Exception e) {
+                                Log.e(TAG, "条码处理结果失败", e);
+                                isCodeDecoding = false;
+                            }
+                        } else {
+                            isCodeDecoding = false;
+                        }
+                    }
+                }).start();
+            }
+        }
+    }
+
+
+    /** 是否识别中. */
+    public boolean isDecoding = false;
+
+    /**
+     * 手动识别.
+     */
+    public void decodeBySelf() {
+        if (isDecoding) {
+            return;
+        } else {
+            isOcrDecoding = false;
+            isCodeDecoding = false;
+        }
+    }
+
+    /**
+     * 结束识别并返回结果.
+     */
+    public void decodeOverAndBack() {
+        mScanActivity.handleDecode(scanRsltLs);
+    }
 }

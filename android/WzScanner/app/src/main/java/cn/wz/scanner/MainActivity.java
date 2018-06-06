@@ -2,34 +2,36 @@ package cn.wz.scanner;
 
 import android.Manifest;
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
-import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
-import android.widget.ImageView;
 import android.widget.Switch;
-import android.widget.TextView;
 
 import com.tbruyelle.rxpermissions2.RxPermissions;
+
+import java.util.ArrayList;
 
 import cn.wz.scanner.scanlibrary.acitvity.ScanActivity;
 import cn.wz.scanner.scanlibrary.pojo.WzScanResult;
 
 public class MainActivity extends AppCompatActivity {
 
-    Button btnOpenView;
-    TextView txtScanRsltView;
-    ImageView imgView;
-    Switch switchFlash;
+    private Button btnOpenView;
+    private RecyclerView rsltView;
+    private AppAdapter mAppAdapter;
+    private Switch switchBatchSacn;
+    private Switch switchFlash;
     private boolean isOpenFlash = false;
+    private boolean isBatchScan = false;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -48,35 +50,46 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        });
+//        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+//        fab.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
+//                        .setAction("Action", null).show();
+//            }
+//        });
         btnOpenView = (Button) findViewById(R.id.btnStart);
         btnOpenView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 Intent it = new Intent(MainActivity.this, ScanActivity.class);
-                Bundle bundle=new Bundle();
                 it.putExtra("isFlashOpen", isOpenFlash);
+                it.putExtra("isMulScan", isBatchScan);
                 startActivityForResult(it, 1000);
             }
         });
-        btnOpenView.setText("扫描");
-        txtScanRsltView = (TextView) findViewById(R.id.txtScanRslt);
-        imgView = (ImageView) findViewById(R.id.imgScanRslt);
         switchFlash = (Switch) findViewById(R.id.switchUseFlashLight);
-        switchFlash.setText("打开闪光灯");
         switchFlash.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean isChecked) {
                 isOpenFlash = isChecked;
             }
         });
+        switchBatchSacn = (Switch) findViewById(R.id.switchBatchScan);
+        switchBatchSacn.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                isBatchScan = isChecked;
+            }
+        });
+        rsltView = (RecyclerView) findViewById(R.id.rvScanResults);
+        rsltView.addItemDecoration(new TopSpaceItemDecoration(DensityUtil.dpTopx(this, 10)));
+        rsltView.setHasFixedSize(true);
+        rsltView.setLayoutManager(new LinearLayoutManager(this));
+
+        mAppAdapter = new AppAdapter(null);
+        mAppAdapter.openLoadAnimation();
+        rsltView.setAdapter(mAppAdapter);
     }
 
     @Override
@@ -105,14 +118,11 @@ public class MainActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
         if (resultCode == RESULT_OK) {
             if (requestCode == 1000) {
-                WzScanResult result = (WzScanResult) data.getExtras().get("scanRslt");
-                if (null == result) {
+                ArrayList<WzScanResult> result = (ArrayList<WzScanResult>) data.getExtras().get("scanRslt");
+                if (null == result || 0 == result.size()) {
                     return;
                 }
-                txtScanRsltView.setText(result.toString());
-                byte[] bts = result.getBitmap();
-                Bitmap btmap = BitmapFactory.decodeByteArray(bts, 0, bts.length);
-                imgView.setImageBitmap(btmap);
+                mAppAdapter.setNewData(result);
             }
         }
     }

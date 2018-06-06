@@ -166,12 +166,19 @@ public final class MultiFormatReader implements Reader {
 
   private Result decodeInternal(BinaryBitmap image) throws NotFoundException {
     if (readers != null) {
+//      Result tmpRslt = null;
+//      Result retRslt = null;
       for (Reader reader : readers) {
         try {
+//          tmpRslt = reader.decode(image, hints);
+//          if (null != tmpRslt && null != tmpRslt.getText() && 0 < tmpRslt.getText().length() && (null == retRslt || retRslt.getText().length() < tmpRslt.getText().length())) {
+//            retRslt = tmpRslt;
+//          }
           return reader.decode(image, hints);
         } catch (ReaderException re) {
           // continue
         }
+//        return retRslt;
       }
     }
     throw NotFoundException.getNotFoundInstance();

@@ -123,7 +123,7 @@ public class TessManager {
      */
     private byte[] readRawTrainingData(Context pContext, String rawTrainingDataFileName) throws IOException {
 //            InputStream fileInputStream = pContext.getResources().getAssets().open(rawTrainingDataFileName);
-            InputStream fileInputStream = pContext.getResources().openRawResource(R.raw.eng);
+            InputStream fileInputStream = pContext.getResources().openRawResource(R.raw.eng_traineddata);
             ByteArrayOutputStream buff = new ByteArrayOutputStream();
             byte[] b = new byte[1024];
             int bytesRead;

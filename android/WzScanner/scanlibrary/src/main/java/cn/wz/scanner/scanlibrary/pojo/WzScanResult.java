@@ -17,7 +17,11 @@ public class WzScanResult implements Serializable {
     private String mailNo;
     /** 收件人手机号码. */
     private String recipientMobile;
-
+    /** 收件人姓名. */
+    private String recipientName;
+    /** 收件人地址. */
+    private String recipientAddr;
+    /** 拍照原图. */
     private byte[] bitmap;
 
     /*
@@ -63,8 +67,27 @@ public class WzScanResult implements Serializable {
         this.bitmap = bitmap;
     }
 
+    public String getRecipientName() {
+        return recipientName;
+    }
+
+    public void setRecipientName(String recipientName) {
+        this.recipientName = recipientName;
+    }
+
+    public String getRecipientAddr() {
+        return recipientAddr;
+    }
+
+    public void setRecipientAddr(String recipientAddr) {
+        this.recipientAddr = recipientAddr;
+    }
+
     @Override
     public String toString() {
-        return "运单号：" + mailNo + System.lineSeparator() + "收件人手机号码：" + recipientMobile;
+        return "运单号：" + mailNo
+                + System.lineSeparator() + "收件人手机号码：" + recipientMobile
+                + System.lineSeparator() + "收件人姓名：" + recipientName
+                + System.lineSeparator() + "收件地址：" + recipientAddr;
     }
 }

@@ -33,8 +33,12 @@ public class WzStringUtil extends StringUtils {
      * @return 第一个手机号码
      */
     public static String getFirstMobileNo(String str) {
+        if (isBlank(str)) {
+            return null;
+        }
+        String tmpStr = str2OneLine(str);
         Pattern mobilePattern = Pattern.compile(mobileRegex2);
-        Matcher matcher = mobilePattern.matcher(str);
+        Matcher matcher = mobilePattern.matcher(tmpStr);
         if (matcher.find()) {
             return matcher.group();
         }
@@ -47,6 +51,9 @@ public class WzStringUtil extends StringUtils {
      * @return 手机号码列表
      */
     public static List<String> getMobileNoList(String str) {
+        if (isBlank(str)) {
+            return null;
+        }
         List<String> mobileLs = new ArrayList<String>();
         Pattern mobilePattern = Pattern.compile(mobileRegex2);
         Matcher matcher = mobilePattern.matcher(str);
@@ -74,6 +81,16 @@ public class WzStringUtil extends StringUtils {
         if (0 < mobileLs.size()) {
             return mobileLs;
         }
+        return null;
+    }
+
+    /**
+     * 获取快件收件信息.
+     * @param strs 识别字符串列表
+     * @return 快件收件信息[0-手机号码,1-姓名,2-地址]
+     */
+    public static String[] getMailInfo(List<String> strs) {
+
         return null;
     }
 }
