@@ -21,6 +21,7 @@ import java.util.List;
 
 import cn.wz.scanner.scanlibrary.R;
 import cn.wz.scanner.scanlibrary.adapter.ScanLibAdapter;
+import cn.wz.scanner.scanlibrary.pojo.WzDecodeType;
 import cn.wz.scanner.scanlibrary.pojo.WzScanResult;
 import cn.wz.scanner.scanlibrary.utils.DensityUtil;
 import cn.wz.scanner.scanlibrary.view.WzScannerView;
@@ -55,6 +56,10 @@ public class ScanActivity extends Activity  {
     private boolean defFlashIsOpen = false;
     /** 是否默认批量扫描. */
     private boolean defMultipleScan = false;
+    /** 是否手动扫描. */
+    private boolean defAutoScan = false;
+    /** 默认扫描类别. */
+    private WzDecodeType defDecodeType = new WzDecodeType("1100");
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,6 +70,10 @@ public class ScanActivity extends Activity  {
         this.defFlashIsOpen = getIntent().getBooleanExtra("isFlashOpen", false);
         // 是否批量扫描
         this.defMultipleScan = getIntent().getBooleanExtra("isMulScan", false);
+        // 扫描类别
+        this.defDecodeType = new WzDecodeType(getIntent().getStringExtra("decodeType"));
+        // 是否自动扫描
+        this.defAutoScan = getIntent().getBooleanExtra("isAutoScan", false);
 
         // 设置扫描View
         mScanView = (WzScannerView) findViewById(R.id.scanView);
@@ -98,6 +107,12 @@ public class ScanActivity extends Activity  {
                 mScanView.decodeBySelf();
             }
         });
+        // 只有不涉及网络识别的情况下才允许自动扫描（用腾讯优图识别快件信息时是网络识别）
+        if (defAutoScan && !defDecodeType.isDecodeExpressInfo()) {
+            mBtnDecoding.setVisibility(View.INVISIBLE);
+        } else {
+            mBtnDecoding.setVisibility(View.VISIBLE);
+        }
 
         // 设置结果View
         mRsltLsView = (RecyclerView) findViewById(R.id.lsScanRsltLs);
@@ -131,6 +146,27 @@ public class ScanActivity extends Activity  {
      */
     public boolean getDefMultipleScan() {
         return defMultipleScan;
+    }
+
+    /**
+     * 获得解码类别.
+     * @return 解码类别
+     */
+    public WzDecodeType getDefDecodeType() {
+        return defDecodeType;
+    }
+
+    /**
+     * 判断是否可以自动扫描.
+     * @return 标志
+     */
+    public boolean isAutoScan() {
+        // 只有不涉及网络识别的情况下才允许自动扫描（用腾讯优图识别快件信息时是网络识别）
+        if (defAutoScan && !defDecodeType.isDecodeExpressInfo()) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     /**

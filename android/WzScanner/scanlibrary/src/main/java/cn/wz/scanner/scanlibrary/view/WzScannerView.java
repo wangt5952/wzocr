@@ -25,6 +25,8 @@ import cn.wz.scanner.scanlibrary.R;
 import cn.wz.scanner.scanlibrary.acitvity.ScanActivity;
 import cn.wz.scanner.scanlibrary.pojo.WzScanResult;
 import cn.wz.scanner.scanlibrary.tools.tess.TessManager;
+import cn.wz.scanner.scanlibrary.tools.tess.TessMobileThread;
+import cn.wz.scanner.scanlibrary.tools.tess.TessSimpleCallback;
 import cn.wz.scanner.scanlibrary.tools.youtu.YoutuSimpleCallback;
 import cn.wz.scanner.scanlibrary.tools.youtu.YoutuThread;
 import cn.wz.scanner.scanlibrary.tools.zxing.ZxingSimpleCallback;
@@ -400,6 +402,10 @@ public class WzScannerView extends SurfaceView implements SurfaceHolder.Callback
             mCamera.setPreviewDisplay(mHolder);
             mCamera.startPreview();
             mCamera.autoFocus(autoFocusCallback);
+            // 初始化是否自动扫描
+            if (mScanActivity.isAutoScan()) {
+                decodeBySelf();
+            }
         } catch (IOException e) {
             Log.e(TAG, "启动扫描异常", e);
             mCamera.release();
@@ -550,8 +556,13 @@ public class WzScannerView extends SurfaceView implements SurfaceHolder.Callback
     private long startTime, endTime;
     /** 是否Ocr识别中. */
     public boolean isOcrDecoding = true;
-    /** 是否条码识别中. */
+    /** 是否优图识别中. */
+    public boolean isYoutuDecoding = true;
+    /** 是否一维条码识别中. */
     public boolean isCodeDecoding = true;
+    /** 是否QR码识别中. */
+    public boolean isQRDecoding = true;
+
     // 解析结果
     private ArrayList<WzScanResult> scanRsltLs = new ArrayList<WzScanResult>();
     private WzScanResult scanResult = new WzScanResult();
@@ -574,13 +585,28 @@ public class WzScannerView extends SurfaceView implements SurfaceHolder.Callback
                 // 震动表示识别结束
                 Vibrator vibrator = (Vibrator) mScanActivity.getSystemService(Context.VIBRATOR_SERVICE);
                 vibrator.vibrate(200L);
-                // 关闭识别进度条
-                mScanActivity.cancelProgressDialog();
-                // 点击识别按钮前不再进行扫描
+                // 允许下次处理前不再进行扫描
                 isOcrDecoding = true;
                 isCodeDecoding = true;
-                // 允许再次点击识别按钮
-                isDecoding = false;
+                isYoutuDecoding = true;
+                isQRDecoding = true;
+                // 如果手动识别则关闭识别进度条
+                if (!mScanActivity.isAutoScan()) {
+                    mScanActivity.cancelProgressDialog();
+                }
+                // 如果是自动识别，则两次识别至少间隔1秒
+                if (mScanActivity.isAutoScan()) {
+                    try {
+                        Thread.sleep(1000);
+                    } catch (Exception e) {
+                    }
+                    // 允许再次识别
+                    isDecoding = false;
+                    decodeBySelf();
+                } else {
+                    // 允许再次点击识别按钮
+                    isDecoding = false;
+                }
                 // 如果是批量扫描
                 if (mScanActivity.getDefMultipleScan()) {
                     // 将扫描结果放入列表
@@ -597,43 +623,43 @@ public class WzScannerView extends SurfaceView implements SurfaceHolder.Callback
                     return;
                 }
             }
-//            // OCR解码
-//            if (!isOcrDecoding && null != bytes && 0 < bytes.length && !scanResult.isRecipientMobileSuccess()) {
-//                isOcrDecoding = true;
-//                new TessMobileThread(bytes, camera, getContext(), "eng", new TessSimpleCallback() {
-//                    @Override
-//                    public void response(boolean isOk, String respOcrText, Bitmap cropBmp) {
-//                        if (isOk) {
-//                            // 保存图片
-//                            try {
-//                                ByteArrayOutputStream tmpStream = new ByteArrayOutputStream();
-//                                cropBmp.compress(Bitmap.CompressFormat.JPEG, 80, tmpStream);
-//                                byte[] ocBmpBytes = tmpStream.toByteArray();
-//                                tmpStream.close();
-//                                scanResult.setBitmap(ocBmpBytes);
-//                                scanResult.setRecipientMobileSuccess(true);
-//                                scanResult.setRecipientMobile(respOcrText);
-//                            } catch (Exception e) {
-//                                isOcrDecoding = false;
-//                            }
-//                        }
-//                        isOcrDecoding = false;
-//                    }
-//                }).start();
-//            }
-            // 优图解码
+            // OCR解码
             if (!isOcrDecoding && null != bytes && 0 < bytes.length && !scanResult.isRecipientMobileSuccess()) {
                 isOcrDecoding = true;
+                new TessMobileThread(bytes, camera, getContext(), "eng", new TessSimpleCallback() {
+                    @Override
+                    public void response(boolean isOk, String respOcrText, Bitmap cropBmp) {
+                        if (isOk) {
+                            // 保存图片
+                            try {
+                                ByteArrayOutputStream tmpOcrStream = new ByteArrayOutputStream();
+                                cropBmp.compress(Bitmap.CompressFormat.JPEG, 80, tmpOcrStream);
+                                byte[] ocBmpBytes = tmpOcrStream.toByteArray();
+                                tmpOcrStream.close();
+                                scanResult.setBitmap(ocBmpBytes);
+                                scanResult.setRecipientMobileSuccess(true);
+                                scanResult.setRecipientMobile(respOcrText);
+                            } catch (Exception e) {
+                                isOcrDecoding = false;
+                            }
+                        }
+                        isOcrDecoding = false;
+                    }
+                }).start();
+            }
+            // 优图解码
+            if (!isYoutuDecoding && null != bytes && 0 < bytes.length && !scanResult.isRecipientMobileSuccess()) {
+                isYoutuDecoding = true;
                 new YoutuThread(bytes, camera, new YoutuSimpleCallback() {
                     @Override
                     public void response(boolean isOk, WzScanResult respOcrText, Bitmap cropBmp) {
                         try {
                             // 保存图片
-                            ByteArrayOutputStream tmpStream = new ByteArrayOutputStream();
-                            cropBmp.compress(Bitmap.CompressFormat.JPEG, 80, tmpStream);
-                            byte[] ocBmpBytes = tmpStream.toByteArray();
-                            tmpStream.close();
-                            scanResult.setBitmap(ocBmpBytes);
+                            ByteArrayOutputStream tmpYoutuStream = new ByteArrayOutputStream();
+                            cropBmp.compress(Bitmap.CompressFormat.JPEG, 80, tmpYoutuStream);
+                            byte[] ytBmpBytes = tmpYoutuStream.toByteArray();
+                            tmpYoutuStream.close();
+                            scanResult.setBitmap(ytBmpBytes);
                             if (isOk) {
                                 scanResult.setRecipientMobileSuccess(true);
                                 scanResult.setRecipientMobile(respOcrText.getRecipientMobile());
@@ -641,18 +667,18 @@ public class WzScannerView extends SurfaceView implements SurfaceHolder.Callback
                                 scanResult.setRecipientName(respOcrText.getRecipientName());
                             } else {
                                 scanResult.setRecipientMobileSuccess(true);
-                                scanResult.setRecipientMobile("未解析出内容无内容");
-                                scanResult.setRecipientAddr("无内容");
-                                scanResult.setRecipientName("无内容");
+                                scanResult.setRecipientMobile("未解析出内容");
+                                scanResult.setRecipientAddr("未解析出内容");
+                                scanResult.setRecipientName("未解析出内容");
                             }
                         } catch (Exception e) {
                             isOcrDecoding = false;
                             scanResult.setRecipientMobileSuccess(true);
-                            scanResult.setRecipientMobile("异常");
-                            scanResult.setRecipientAddr("异常");
-                            scanResult.setRecipientName("异常");
+                            scanResult.setRecipientMobile("解析异常");
+                            scanResult.setRecipientAddr("解析异常");
+                            scanResult.setRecipientName("解析异常");
                         }
-                        isOcrDecoding = false;
+                        isYoutuDecoding = false;
                     }
                 }).start();
             }
@@ -696,8 +722,26 @@ public class WzScannerView extends SurfaceView implements SurfaceHolder.Callback
         if (isDecoding) {
             return;
         } else {
-            isOcrDecoding = false;
-            isCodeDecoding = false;
+            isDecoding = true;
+            if (mScanActivity.getDefDecodeType().isDecodeOneCode()) {
+                isCodeDecoding = false;
+            } else {
+                isCodeDecoding = true;
+            }
+            if (mScanActivity.getDefDecodeType().isDecodeExpressInfo()) {
+                isYoutuDecoding = false;
+                isOcrDecoding = true;
+            } else {
+                isYoutuDecoding = true;
+                if (mScanActivity.getDefDecodeType().isDecodePhoneNo()) {
+                    isOcrDecoding = false;
+                } else {
+                    isOcrDecoding = true;
+                }
+            }
+            if (mScanActivity.getDefDecodeType().isDecodeQR()) {
+                isQRDecoding = false;
+            }
         }
     }
 

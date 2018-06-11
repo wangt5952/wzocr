@@ -3,8 +3,6 @@ package cn.wz.scanner;
 import android.Manifest;
 import android.content.Intent;
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -65,6 +63,8 @@ public class MainActivity extends AppCompatActivity {
                 Intent it = new Intent(MainActivity.this, ScanActivity.class);
                 it.putExtra("isFlashOpen", isOpenFlash);
                 it.putExtra("isMulScan", isBatchScan);
+                it.putExtra("decodeType", "1010");
+                it.putExtra("isAutoScan", true);
                 startActivityForResult(it, 1000);
             }
         });

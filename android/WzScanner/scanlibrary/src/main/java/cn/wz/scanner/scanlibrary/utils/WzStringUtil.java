@@ -3,6 +3,7 @@ package cn.wz.scanner.scanlibrary.utils;
 import android.text.TextUtils;
 
 import org.apache.commons.lang3.StringUtils;
+import org.json.JSONArray;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +24,7 @@ public class WzStringUtil extends StringUtils {
      */
     public static String str2OneLine(String str) {
         String tmpStr = str.trim();
+        // !@#$%^&*()_+=-[]}{;:'"\|~`,./<>?
         tmpStr = tmpStr.replaceAll("[-|\\s]+", "");
         return tmpStr;
     }
@@ -86,11 +88,31 @@ public class WzStringUtil extends StringUtils {
 
     /**
      * 获取快件收件信息.
-     * @param strs 识别字符串列表
+     * @param jsonArray 识别字符串列表
      * @return 快件收件信息[0-手机号码,1-姓名,2-地址]
      */
-    public static String[] getMailInfo(List<String> strs) {
-
+    public static String[] getMailInfoByYoutu(JSONArray jsonArray) throws Exception {
+//        if (null == jsonArray || 0 == jsonArray.length()) {
+//            return null;
+//        } else {
+//            String[] ret = new String[3];
+//            for (int i = 0; i < jsonArray.length(); i++) {
+//                if (isNotBlank(getFirstMobileNo(jsonArray.getJSONObject(i).getString("itemstring")))) {
+//                    if (0 < i) {
+//                        msg.setRecipientName(ja.getJSONObject(i - 1).getString("itemstring"));
+//                    }
+//                    msg.setRecipientMobile(WzStringUtil.getFirstMobileNo(ja.getJSONObject(i).getString("itemstring")));
+//                    if (i + 1 <ja.length()) {
+//                        msg.setRecipientAddr(ja.getJSONObject(i + 1).getString("itemstring"));
+//                    }
+//                    if (i + 2 <ja.length()) {
+//                        msg.setRecipientAddr(msg.getRecipientAddr() + ja.getJSONObject(i + 2).getString("itemstring"));
+//                    }
+//                    return msg;
+//                }
+//            }
+//            return null;
+//        }
         return null;
     }
 }
